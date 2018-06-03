@@ -65,7 +65,8 @@ var initDb = function(callback) {
   });
 };
 
-app.get('/', function(req, res, next) {
+// REGISTRATION
+app.get('/registration', function(req, res, next) {
         res.render('registration', {});
 });
 
@@ -88,6 +89,44 @@ app.post('/registration', function(req, res, next) {
             );
         }
 });
+
+// LOGIN
+app.get('/login', function(req, res, next) {
+        res.render('login', {});
+});
+
+app.post('/login', function(req, res, next) {
+        var username = req.body.username;
+        var password = req.body.password;
+
+
+		var query = {"username": username};
+		db.collection('users').find(query).toArray(function(err, docs) {
+			assert.equal(err, null);
+			assert.notEqual(docs.length, 0);
+
+			docs.forEach(function(doc) {
+					console.log( doc.username );
+					if (doc.password == password) {
+
+						console.log( "Password is correct!");
+						db.collection('sessions').insertOne( { 'username': username },
+						function (err, r) {
+							assert.equal(null, err);
+							res.send("You are welcome Mr." + username );
+						}
+						);
+
+					};
+			});
+
+			//db.close();
+		});
+});
+
+
+
+
 
 app.get('/', function (req, res) {
   // try to initialize the db on every request if it's not already
