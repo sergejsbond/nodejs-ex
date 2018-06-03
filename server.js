@@ -2,7 +2,16 @@
 var express = require('express'),
     app     = express(),
     morgan  = require('morgan');
-    
+    engines = require('consolidate'),
+    bodyParser = require('body-parser'),
+    MongoClient = require('mongodb').MongoClient,
+    assert = require('assert');
+
+app.engine('html', engines.nunjucks);
+app.set('view engine', 'html');
+app.set('views', __dirname + '/views');
+app.use(bodyParser.urlencoded({ extended: true }));
+
 Object.assign=require('object-assign')
 
 app.engine('html', require('ejs').renderFile);
@@ -55,6 +64,30 @@ var initDb = function(callback) {
     console.log('Connected to MongoDB at: %s', mongoURL);
   });
 };
+
+app.get('/', function(req, res, next) {
+        res.render('registration', {});
+});
+
+app.post('/registration', function(req, res, next) {
+        var username = req.body.username;
+        var password = req.body.password;
+        var password2 = req.body.password2;
+
+        if ((username == '') || (password == '') || (password2 == '')) {
+            next('Please provide an entry for all fields.');
+        } else if (password != password2)  {
+            next('password dont math with password2 ');
+        } else {
+            db.collection('counts').insertOne(
+                { 'username': username, 'password': password },
+                function (err, r) {
+                    assert.equal(null, err);
+                    res.send("Registration complete sucessfully" + username + " , userID " + r.insertedId);
+                }
+            );
+        }
+});
 
 app.get('/', function (req, res) {
   // try to initialize the db on every request if it's not already
