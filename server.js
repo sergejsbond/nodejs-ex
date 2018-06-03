@@ -79,11 +79,11 @@ app.post('/registration', function(req, res, next) {
         } else if (password != password2)  {
             next('password dont math with password2 ');
         } else {
-            db.collection('counts').insertOne(
+            db.collection('users').insertOne(
                 { 'username': username, 'password': password },
                 function (err, r) {
                     assert.equal(null, err);
-                    res.send("Registration complete sucessfully" + username + " , userID " + r.insertedId);
+                    res.send("Registration completed sucessfully for user: " + username + " , userID " + r.insertedId);
                 }
             );
         }
