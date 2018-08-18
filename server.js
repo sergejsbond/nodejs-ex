@@ -1,5 +1,6 @@
 //  OpenShift sample Node application
 var express = require('express'),
+    request = require('request'), //for get info from web function
     app     = express(),
     morgan  = require('morgan');
     engines = require('consolidate'),
@@ -19,7 +20,10 @@ app.use(morgan('combined'))
 
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
     ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0',
-    mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
+    //for web portal use:
+//    mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
+    //for local portal use:
+    mongoURL = 'mongodb://localhost:27017/getinfofromweb',
     mongoURLLabel = "";
 
 if (mongoURL == null && process.env.DATABASE_SERVICE_NAME) {
@@ -64,6 +68,85 @@ var initDb = function(callback) {
     console.log('Connected to MongoDB at: %s', mongoURL);
   });
 };
+
+
+// LINK REGISTRATION
+app.get('/registerlink', function(req, res, next) {
+        res.render('registerlink', {});
+});
+app.post('/registerlink', function(req, res, next) {
+        var link = req.body.link;
+
+        if (link == '')  {
+            next('Please enter link.');
+        } else {
+            db.collection('links').insertOne(
+                { 'link': link, 'date': new Date() },
+                function (err, r) {
+                    assert.equal(null, err);
+                    res.send("Link registration completed sucessfully for link: " + link + " , linkID " + r.insertedId);
+                }
+            );
+        }
+
+
+        //
+        var query = {"link": link};
+
+        //var website = "https://www.1a.lv/telefoni_plansetdatori/mobilie_telefoni/mobile_phones/samsung_a320f_galaxy_a3_2017_16_gb_black_sky";
+        var str1 = "data-sell-price-w-vat='";
+        var str1LEN = str1.length;
+        var str2 = "'>";
+        var result;
+
+        var request = require('request');
+        request(link, function (error, response, body) {
+                //console.log('startIndex:', body.indexOf(str1)+str1LEN  );
+                //console.log('endIndex:', body.indexOf(   str2   ,  body.indexOf(str1)+str1LEN  )  );
+                result =  body.substring(body.indexOf(str1)+str1LEN   ,   body.indexOf(   "'>"   ,  body.indexOf(str1)+str1LEN  ) );
+                console.log('RESULT: ', result );
+
+
+
+
+          		db.collection('links').find(query).toArray(function(err, docs) {
+          			assert.equal(err, null);
+          			assert.notEqual(docs.length, 0);
+
+          			docs.forEach(function(doc) {
+          					console.log( doc.link );
+          					if (doc.link == link) {
+
+          						console.log( "find the link");
+                                  try {
+                                        db.collection('links').updateOne({
+                                              "link" : link
+                                        }, {
+                                              $push:
+                                              {
+                                                   "prices" :
+                                                        {
+                                                             "price": result,
+                                                             "date": new Date()
+                                                         }
+                                              }
+                                           }
+                                        );
+                                  } catch (e) {
+                                        print(e);
+                                  }
+
+
+          					};
+          			});
+
+          			//db.close();
+          		});
+
+        });
+
+});
+
 
 // REGISTRATION
 app.get('/registration', function(req, res, next) {
